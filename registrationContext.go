@@ -77,6 +77,7 @@ func (p registrationContext) addRegistration(reg *typeRegistration) {
 }
 
 func (p registrationContext) findRegistration(typeName string) *typeRegistration {
+	typeName = formatType(typeName)
 	l := p.registrations[typeName]
 	if l == nil || l.Len() == 0 {
 		return nil
@@ -109,7 +110,7 @@ func (p registrationContext) removeRegistration(reg *typeRegistration) bool {
 // Registration Stuff
 //
 
-func (p registrationContext) RegisterPending(target string, implmentor string, cached bool) Closable {
+func (p registrationContext) RegisterByName(target string, implmentor string, cached bool) Closable {
 
 	registrationCounter++
 	tr := &typeRegistration{

@@ -1,3 +1,29 @@
+// Package godi provides a simple, pluggable DI library for Go.
+//
+// godi handles Go types as interface{} parameters.  The method for passing these is:
+//
+// Interfaces: (*InterfaceName)(nil)
+// Types: StructName{}
+//
+// For example: imagine a type Hippo which satisfies interface Animal.
+//
+// For callers that are interested in an animal, which is determined by DI
+// to be a Hippo-type that will be created for each caller:
+//
+// godi.RegisterTypeImplementor((*Animal)(nil), Hippo{})
+//
+// Later, when a caller is interested in getting an animal:
+//
+// instance, err := godi.Resolve((*Animal)(nil))
+//
+// Likewise, if it is decided that all Animal-interested parties should get a
+// created instance of Zebra
+//
+// zebra := &Zebra{Gender: 'Female', Age:4}
+// godi.RegisterInstanceImplementor((*Animal)(nil), zebra)
+//
+// In this case, the all callers will resolve the Zebra.
+//
 package godi
 
 import (
@@ -26,6 +52,8 @@ func getRegisteredTypes() *map[string]*reflect.Type {
 	return &typeMap
 }
 
+// ExtractType is a helper method that returns the reflect.Type and [package].[type] name
+// of an object
 func ExtractType(val interface{}) (reflect.Type, string) {
 	t := reflect.TypeOf(val)
 
@@ -45,7 +73,8 @@ func ExtractType(val interface{}) (reflect.Type, string) {
 }
 
 func typeToString(t reflect.Type) string {
-	return fmt.Sprintf("%v", t)
+	name := fmt.Sprintf("%v", t)
+	return formatType(name)
 }
 
 func reset() {
@@ -68,7 +97,7 @@ type Closable interface {
 // them
 type RegistrationContext interface {
 	Closable
-	RegisterPending(target string, implementor string, cached bool) Closable
+	RegisterByName(target string, implementor string, cached bool) Closable
 	RegisterInstanceImplementor(target interface{}, instance interface{}) (Closable, error)
 	RegisterTypeImplementor(target interface{}, implementorType interface{}, cached bool) (Closable, error)
 	Resolve(target interface{}) (interface{}, error)
@@ -97,22 +126,22 @@ func (p *RegistrationToken) Close() {
 	}
 }
 
-// Register registers a type with the DI framework.  This is required for using the type downstream, and generally
+// RegisterType registers a type with the DI framework.  This is required for using the type downstream, and generally
 // is to be done in the init() method of the package you wish to use with DI.
 //
 // Example For interface:
 //
 // func init() {
-//	  Register((*MyInterfaceType)(nil))
+//	  RegisterType((*MyInterfaceType)(nil))
 // }
 //
 // Example For type:
 //
 // func init() {
-//	  Register(MyStructType{})
+//	  RegisterType(MyStructType{})
 // }
 //
-func Register(val interface{}) error {
+func RegisterType(val interface{}) error {
 
 	t, name := ExtractType(val)
 
@@ -124,6 +153,8 @@ func Register(val interface{}) error {
 	return nil
 }
 
+// RegisterInstanceInitializer registers an object that will be invoked when a new object is created
+// by the DI system.  See the InstanceInitializer interface.
 func RegisterInstanceInitializer(initializer InstanceInitializer) error {
 	return currentContext.RegisterInstanceInitializer(initializer)
 }
@@ -148,13 +179,13 @@ func RegisterTypeImplementor(target interface{}, implementorType interface{}, ca
 	return currentContext.RegisterTypeImplementor(target, implementorType, cached)
 }
 
-// RegisterPending allow registration of targets and implmentors by name.  When the
+// RegisterByName allow registration of targets and implmentors by name.  When the
 // corresponding types are Registered, these registrations will be available.
 // -target The target interface
 // -implementor The implementing type
 // -cached If true, returns the same instance for each type.
-func RegisterPending(target string, implementor string, cached bool) Closable {
-	return currentContext.RegisterPending(target, implementor, cached)
+func RegisterByName(target string, implementor string, cached bool) Closable {
+	return currentContext.RegisterByName(target, implementor, cached)
 }
 
 // Resolve returns an instance of the requested interface, or an error

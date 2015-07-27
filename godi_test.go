@@ -30,10 +30,10 @@ func (p T2) F2() string {
 	return "t2f2"
 }
 
-func TestRegister(t *testing.T) {
+func TestRegisterType(t *testing.T) {
 	reset()
 
-	Register((*I1)(nil))
+	RegisterType((*I1)(nil))
 	count := len(*getRegisteredTypes())
 
 	if count != 1 {
@@ -43,9 +43,9 @@ func TestRegister(t *testing.T) {
 
 func TestRegisterDupe(t *testing.T) {
 	reset()
-	Register(T1{})
+	RegisterType(T1{})
 
-	err := Register(T1{})
+	err := RegisterType(T1{})
 
 	if err == nil {
 		t.Error("Expected Error")
@@ -248,24 +248,24 @@ func TestResolvePendingFail(t *testing.T) {
 
 	reset()
 
-	RegisterPending("godi.I1", "godi.T2", false)
+	RegisterByName("godi.I1", "godi.T2", false)
 
 	i1 := (*I1)(nil)
 
-	Register(i1)
+	RegisterType(i1)
 	Resolve(i1)
 	t.Error("Expected panic.")
 }
 
 func TestResolvePending(t *testing.T) {
 	reset()
-	RegisterPending("godi.I1", "godi.T2", false)
+	RegisterByName("godi.I1", "godi.T2", false)
 
 	i1 := (*I1)(nil)
-	if e1 := Register(i1); e1 != nil {
+	if e1 := RegisterType(i1); e1 != nil {
 		t.Error(e1)
 	}
-	if e2 := Register(T2{}); e2 != nil {
+	if e2 := RegisterType(T2{}); e2 != nil {
 		t.Error(e2)
 	}
 
@@ -281,11 +281,11 @@ func TestCreateScope(t *testing.T) {
 	i1 := (*I1)(nil)
 	t1 := T1{}
 
-	if e1 := Register(i1); e1 != nil {
+	if e1 := RegisterType(i1); e1 != nil {
 		t.Error(e1)
 	}
 
-	if e2 := Register(T1{}); e2 != nil {
+	if e2 := RegisterType(T1{}); e2 != nil {
 		t.Error(e2)
 	}
 
@@ -311,4 +311,14 @@ func TestCreateScope(t *testing.T) {
 
 	s2.Close()
 
+}
+
+func TestFormatType(t *testing.T) {
+	typeName := "*list.List"
+
+	typeName = formatType(typeName)
+
+	if typeName != "list.List" {
+		t.Error(typeName)
+	}
 }

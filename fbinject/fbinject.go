@@ -1,7 +1,9 @@
+// Package fbinject is an implementation of godi.InstanceInitializer that
+// works with https://github.com/facebookgo/inject
 package fbinject
 
 import (
-	"godi"
+	"github.com/shawnburke/godi"
 
 	"github.com/facebookgo/inject"
 )
@@ -14,6 +16,8 @@ type InitItem struct {
 type FBInjectInstanceInitializer struct {
 	initializers map[string]*InitItem
 }
+
+var _ godi.InstanceInitializer = FBInjectInstanceInitializer{}
 
 func NewFBInjectInstanceInitializer() *FBInjectInstanceInitializer {
 	return &FBInjectInstanceInitializer{

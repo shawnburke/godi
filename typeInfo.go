@@ -3,6 +3,7 @@ package godi
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // --------
@@ -16,7 +17,14 @@ type typeInfo struct {
 	reflectType *reflect.Type
 }
 
+func formatType(typeName string) string {
+	return strings.Replace(typeName, "*", "", -1)
+}
+
 func newtypeInfo(typeName string, reflectType *reflect.Type) *typeInfo {
+
+	typeName = formatType(typeName)
+
 	ti := &typeInfo{typeName: typeName, reflectType: reflectType}
 
 	if reflectType != nil {

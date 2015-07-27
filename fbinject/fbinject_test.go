@@ -1,8 +1,9 @@
 package fbinject
 
 import (
-	"godi"
 	"testing"
+
+	"github.com/shawnburke/godi"
 )
 
 type I1 interface {
