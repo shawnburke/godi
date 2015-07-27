@@ -92,6 +92,15 @@ type Closable interface {
 	Close()
 }
 
+// Initializable allows implementing an initialization interface on a type
+// that will be called after creation
+type Initializable interface {
+
+	// Initialize will be called to inialize an instance.  Return false
+	// to prevent the instance from being passed to any other InstanceInitializer code.
+	Initialize() bool
+}
+
 // RegistrationContext is a scoped registration handler that allows registering
 // of implementors in a scoped fashion, but downstream callers must have a refence to the scope to retrieve
 // them
@@ -99,7 +108,7 @@ type RegistrationContext interface {
 	Closable
 	RegisterByName(target string, implementor string, cached bool) Closable
 	RegisterInstanceImplementor(target interface{}, instance interface{}) (Closable, error)
-	RegisterTypeImplementor(target interface{}, implementorType interface{}, cached bool) (Closable, error)
+	RegisterTypeImplementor(target interface{}, implementorType interface{}, cached bool, init InitializeCallback) (Closable, error)
 	Resolve(target interface{}) (interface{}, error)
 	CreateScope() RegistrationContext
 	Reset()
@@ -175,8 +184,9 @@ func RegisterInstanceImplementor(target interface{}, instance interface{}) (Clos
 // -target The target interface
 // -implementorType The implementing type
 // -cached Set true to return the same instance for subsequent calls, false to create a new one each time
-func RegisterTypeImplementor(target interface{}, implementorType interface{}, cached bool) (Closable, error) {
-	return currentContext.RegisterTypeImplementor(target, implementorType, cached)
+// -init A callback to be called to initialize the object.
+func RegisterTypeImplementor(target interface{}, implementorType interface{}, cached bool, init InitializeCallback) (Closable, error) {
+	return currentContext.RegisterTypeImplementor(target, implementorType, cached, init)
 }
 
 // RegisterByName allow registration of targets and implmentors by name.  When the

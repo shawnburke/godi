@@ -45,17 +45,39 @@ func (p registrationContext) RegisterInstanceInitializer(initializer InstanceIni
 	return nil
 }
 
+var initializableType, _ = ExtractType((*Initializable)(nil))
+
 func (p registrationContext) initializeInstance(instance interface{}, typeReg *typeRegistration) (interface{}, error) {
-	l := p.initializers
-	for e := l.Front(); e != nil; e = e.Next() {
-		init := e.Value.(InstanceInitializer)
-		if init != nil && init.CanInitialize(instance, typeReg.implType.typeName) {
-			return init.Initialize(instance, typeReg.implType.typeName)
-		}
+
+	// order of initialization is:
+	// 1. Init callback
+	// 2. Initialize ctor
+	// 3. InstanceInitializer
+
+	callInitializers := true
+
+	if typeReg.initializer != nil {
+		callInitializers = typeReg.initializer(instance)
 	}
 
-	if p.parent != nil {
-		return p.parent.initializeInstance(instance, typeReg)
+	if callInitializers {
+		if init, ok := instance.(Initializable); ok {
+			callInitializers = init.Initialize()
+		}
+
+		if callInitializers {
+			l := p.initializers
+			for e := l.Front(); e != nil; e = e.Next() {
+				init := e.Value.(InstanceInitializer)
+				if init != nil && init.CanInitialize(instance, typeReg.implType.typeName) {
+					return init.Initialize(instance, typeReg.implType.typeName)
+				}
+			}
+
+			if p.parent != nil {
+				return p.parent.initializeInstance(instance, typeReg)
+			}
+		}
 	}
 	return instance, nil
 }
@@ -127,7 +149,7 @@ func (p registrationContext) RegisterByName(target string, implmentor string, ca
 func (p registrationContext) RegisterInstanceImplementor(target interface{}, instance interface{}) (Closable, error) {
 	t := instanceToType(target)
 
-	rt := reflect.TypeOf(instance)
+	rt := instanceToType(instance)
 
 	registrationCounter++
 	tr := &typeRegistration{
@@ -146,16 +168,17 @@ func (p registrationContext) RegisterInstanceImplementor(target interface{}, ins
 	return &RegistrationToken{context: &p, registration: tr}, nil
 }
 
-func (p registrationContext) RegisterTypeImplementor(target interface{}, impl interface{}, cached bool) (Closable, error) {
+func (p registrationContext) RegisterTypeImplementor(target interface{}, impl interface{}, cached bool, init InitializeCallback) (Closable, error) {
 
 	t := instanceToType(target)
 	implementor := instanceToType(impl)
 	registrationCounter++
 	tr := &typeRegistration{
-		targetType: newtypeInfo("", &t),
-		implType:   newtypeInfo("", &implementor),
-		cached:     cached,
-		id:         registrationCounter,
+		targetType:  newtypeInfo("", &t),
+		implType:    newtypeInfo("", &implementor),
+		initializer: init,
+		cached:      cached,
+		id:          registrationCounter,
 	}
 
 	if err := tr.ensureImplementor(implementor, t); err != nil {

@@ -5,12 +5,15 @@ import (
 	"reflect"
 )
 
+type InitializeCallback func(interface{}) bool
+
 type typeRegistration struct {
-	targetType *typeInfo
-	implType   *typeInfo
-	instance   interface{}
-	cached     bool
-	id         int
+	targetType  *typeInfo
+	implType    *typeInfo
+	initializer InitializeCallback
+	instance    interface{}
+	cached      bool
+	id          int
 }
 
 func (p *typeRegistration) ensureImplementor(impl reflect.Type, target reflect.Type) error {

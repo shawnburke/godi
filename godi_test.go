@@ -2,6 +2,7 @@ package godi
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -165,7 +166,7 @@ func TestResolveType(t *testing.T) {
 	i1 := (*I1)(nil)
 	t1 := T1{}
 
-	res, err := RegisterTypeImplementor(i1, t1, false)
+	res, err := RegisterTypeImplementor(i1, t1, false, nil)
 
 	if err != nil {
 		t.Error("Expected reg")
@@ -224,7 +225,7 @@ func TestInstanceInitializer(t *testing.T) {
 	RegisterInstanceInitializer(init)
 
 	i1 := (*I1)(nil)
-	RegisterTypeImplementor(i1, T1{}, false)
+	RegisterTypeImplementor(i1, T1{}, false, nil)
 	t1_r, _ := Resolve(i1)
 	t1_c := t1_r.(*T1)
 
@@ -320,5 +321,53 @@ func TestFormatType(t *testing.T) {
 
 	if typeName != "list.List" {
 		t.Error(typeName)
+	}
+}
+
+type T3 struct {
+	n int
+}
+
+func (p *T3) Initialize() bool {
+	p.n = 42
+	return false
+}
+
+var _ Initializable = &T3{}
+
+func (p T3) F1() string {
+	return strconv.Itoa(p.n)
+}
+
+func TestInitializerInterface(t *testing.T) {
+	reset()
+	i1 := (*I1)(nil)
+	RegisterTypeImplementor(i1, T3{}, true, nil)
+
+	r3, _ := Resolve(i1)
+	r2 := r3.(I1).F1()
+
+	if r2 != "42" {
+		t.Errorf("Expected 42, got %s", r2)
+	}
+}
+
+func TestInitializeCallback(t *testing.T) {
+	reset()
+	i1 := (*I1)(nil)
+
+	init := func(inst interface{}) bool {
+		t3 := inst.(*T3)
+		t3.n = 100
+		return false
+	}
+
+	RegisterTypeImplementor(i1, T3{}, true, init)
+
+	r3, _ := Resolve(i1)
+	r2 := r3.(I1).F1()
+
+	if r2 != "100" {
+		t.Errorf("Expected 100, got %s", r2)
 	}
 }

@@ -40,8 +40,8 @@ func TestFbInject(t *testing.T) {
 	godi.RegisterInstanceInitializer(inject)
 
 	// register the dependency
-	godi.RegisterTypeImplementor((*I1)(nil), T1{}, false)
-	godi.RegisterTypeImplementor((*D2)(nil), TD2{}, false)
+	godi.RegisterTypeImplementor((*I1)(nil), T1{}, false, nil)
+	godi.RegisterTypeImplementor((*D2)(nil), TD2{}, false, nil)
 
 	instance, err := godi.Resolve((*I1)(nil))
 
