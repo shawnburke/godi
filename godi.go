@@ -59,7 +59,6 @@ func ExtractType(val interface{}) (reflect.Type, string) {
 
 	if !strings.Contains(typeToString(t), "rtype") {
 		t = reflect.TypeOf(val)
-
 	} else {
 		t = val.(reflect.Type)
 	}
@@ -77,7 +76,7 @@ func typeToString(t reflect.Type) string {
 	return formatType(name)
 }
 
-func reset() {
+func Reset() {
 	typeMap = make(map[string]*reflect.Type)
 	rootContext.Reset()
 	currentContext = rootContext

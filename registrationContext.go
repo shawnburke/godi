@@ -1,6 +1,7 @@
 package godi
 
 import (
+	"fmt"
 	"container/list"
 	"errors"
 	"reflect"
@@ -54,10 +55,15 @@ func (p registrationContext) initializeInstance(instance interface{}, typeReg *t
 	// 2. Initialize ctor
 	// 3. InstanceInitializer
 
+	var err error
 	callInitializers := true
-
+	
 	if typeReg.initializer != nil {
-		callInitializers = typeReg.initializer(instance)
+		callInitializers,err = typeReg.initializer(instance)
+		if (err != nil && !callInitializers) {
+			// if there is no other option for initializing, we should panic and stop the whole thing
+			panic(fmt.Sprintf("Error with initializer for %s: %s", typeReg.implType.typeName, err.Error()))
+		}
 	}
 
 	if callInitializers {

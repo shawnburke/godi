@@ -32,7 +32,7 @@ func (p T2) F2() string {
 }
 
 func TestRegisterType(t *testing.T) {
-	reset()
+	Reset()
 
 	RegisterType((*I1)(nil))
 	count := len(*getRegisteredTypes())
@@ -43,7 +43,7 @@ func TestRegisterType(t *testing.T) {
 }
 
 func TestRegisterDupe(t *testing.T) {
-	reset()
+	Reset()
 	RegisterType(T1{})
 
 	err := RegisterType(T1{})
@@ -54,7 +54,7 @@ func TestRegisterDupe(t *testing.T) {
 }
 
 func TestResolveInstance(t *testing.T) {
-	reset()
+	Reset()
 
 	i1 := (*I1)(nil)
 	t1 := &T1{s: "foobarx"}
@@ -92,7 +92,7 @@ type I2 interface {
 }
 
 func TestResolveInstanceFail(t *testing.T) {
-	reset()
+	Reset()
 
 	i1 := (*I1)(nil)
 	t1 := &T1{s: "foobarx"}
@@ -114,7 +114,7 @@ func TestResolveInstanceFail(t *testing.T) {
 }
 
 func TestResolveOverride(t *testing.T) {
-	reset()
+	Reset()
 
 	i1 := (*I1)(nil)
 	t1 := &T1{s: "foobar1"}
@@ -161,7 +161,7 @@ func TestResolveOverride(t *testing.T) {
 
 }
 func TestResolveType(t *testing.T) {
-	reset()
+	Reset()
 
 	i1 := (*I1)(nil)
 	t1 := T1{}
@@ -218,7 +218,7 @@ func (p TestInitializer) Initialize(instance interface{}, typeName string) (inte
 }
 
 func TestInstanceInitializer(t *testing.T) {
-	reset()
+	Reset()
 
 	init := TestInitializer{}
 
@@ -247,7 +247,7 @@ func TestResolvePendingFail(t *testing.T) {
 		}
 	}()
 
-	reset()
+	Reset()
 
 	RegisterByName("godi.I1", "godi.T2", false)
 
@@ -259,7 +259,7 @@ func TestResolvePendingFail(t *testing.T) {
 }
 
 func TestResolvePending(t *testing.T) {
-	reset()
+	Reset()
 	RegisterByName("godi.I1", "godi.T2", false)
 
 	i1 := (*I1)(nil)
@@ -278,7 +278,7 @@ func TestResolvePending(t *testing.T) {
 }
 
 func TestCreateScope(t *testing.T) {
-	reset()
+	Reset()
 	i1 := (*I1)(nil)
 	t1 := T1{}
 
@@ -340,7 +340,7 @@ func (p T3) F1() string {
 }
 
 func TestInitializerInterface(t *testing.T) {
-	reset()
+	Reset()
 	i1 := (*I1)(nil)
 	RegisterTypeImplementor(i1, T3{}, true, nil)
 
@@ -353,7 +353,7 @@ func TestInitializerInterface(t *testing.T) {
 }
 
 func TestInitializeCallback(t *testing.T) {
-	reset()
+	Reset()
 	i1 := (*I1)(nil)
 
 	init := func(inst interface{}) bool {
