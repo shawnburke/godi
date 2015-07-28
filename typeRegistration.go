@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-type InitializeCallback func(interface{}) bool
+type InitializeCallback func(interface{}) (bool, error)
 
 type typeRegistration struct {
 	targetType  *typeInfo
@@ -18,7 +18,10 @@ type typeRegistration struct {
 
 func (p *typeRegistration) ensureImplementor(impl reflect.Type, target reflect.Type) error {
 	if !impl.Implements(target) {
-		return fmt.Errorf("Expected %v to implement %v", impl, target)
+		// since a method can be declared on the pointer, you need to check both
+		if !reflect.PtrTo(impl).Implements(target) {
+			return fmt.Errorf("Expected %v to implement %v", impl, target)
+		}
 	}
 	return nil
 }
