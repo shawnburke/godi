@@ -95,9 +95,8 @@ type Closable interface {
 // that will be called after creation
 type Initializable interface {
 
-	// Initialize will be called to inialize an instance.  Return false
-	// to prevent the instance from being passed to any other InstanceInitializer code.
-	Initialize() bool
+	// GodiInit will be called to inialize an instance.
+	GodiInit() error
 }
 
 // RegistrationContext is a scoped registration handler that allows registering

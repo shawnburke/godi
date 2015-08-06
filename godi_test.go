@@ -1,10 +1,11 @@
 package godi
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 	"testing"
-	
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -21,20 +22,23 @@ type (
 	}
 	T3 struct {
 		n int
-	} 
+	}
+
+	TFail struct {
+	}
 	I2 interface {
 		Bar()
 	}
-	TestInitializer struct {}
-	
+	TestInitializer struct{}
+
 	GoDiTestSuite struct {
 		suite.Suite
 	}
 )
 
 var (
-	_ Initializable = &T3{}
-	initS = "hodor"
+	_     Initializable = &T3{}
+	initS               = "hodor"
 )
 
 func (p T1) F1() string {
@@ -49,9 +53,13 @@ func (p T2) F2() string {
 	return "t2f2"
 }
 
-func (p *T3) Initialize() bool {
+func (p *T3) GodiInit() error {
 	p.n = 42
-	return false
+	return nil
+}
+
+func (p *TFail) GodiInit() error {
+	return errors.New("Blargh")
 }
 
 func (p T3) F1() string {
@@ -123,8 +131,23 @@ func (s *GoDiTestSuite) TestResolveInstanceFail() {
 	t2, err2 := Resolve((*I2)(nil))
 	assert.Nil(s.T(), t2)
 	assert.Equal(s.T(), ErrorRegistrationNotFound, err2.Error())
-	
+
 	res.Close()
+}
+
+func (s *GoDiTestSuite) TestResolveInstanceBad() {
+
+	defer func() {
+		if r := recover(); r != nil {
+			// all good
+		}
+	}()
+
+	i1 := (*I2)(nil)
+	t1 := &T1{}
+
+	RegisterInstanceImplementor(i1, t1)
+	assert.Fail(s.T(), "Should have paniced")
 }
 
 func (s *GoDiTestSuite) TestResolveOverride() {
@@ -215,7 +238,7 @@ func (s *GoDiTestSuite) TestResolvePending() {
 	i1 := (*I1)(nil)
 	e1 := RegisterType(i1)
 	assert.Nil(s.T(), e1)
-	
+
 	e2 := RegisterType(T2{})
 	assert.Nil(s.T(), e2)
 
@@ -228,9 +251,9 @@ func (s *GoDiTestSuite) TestCreateScope() {
 	i1 := (*I1)(nil)
 	t1 := T1{}
 
-	e1 := RegisterType(i1); 
+	e1 := RegisterType(i1)
 	assert.Nil(s.T(), e1)
-	
+
 	e2 := RegisterType(T1{})
 	assert.Nil(s.T(), e2)
 
@@ -269,6 +292,21 @@ func (s *GoDiTestSuite) TestInitializerInterface() {
 	assert.Equal(s.T(), "42", r2)
 }
 
+func (s *GoDiTestSuite) TestInitializerInterfaceFail() {
+
+	defer func() {
+		if r := recover(); r != nil {
+			// all good
+		}
+	}()
+
+	i1 := (*I1)(nil)
+	RegisterTypeImplementor(i1, TFail{}, true, nil)
+
+	Resolve(i1)
+	assert.Fail(s.T(), "Shouldn't be here")
+}
+
 func (s *GoDiTestSuite) TestInitializeCallback() {
 	i1 := (*I1)(nil)
 
@@ -286,5 +324,5 @@ func (s *GoDiTestSuite) TestInitializeCallback() {
 }
 
 func TestGoDiTestSuite(t *testing.T) {
-    suite.Run(t, new(GoDiTestSuite))
+	suite.Run(t, new(GoDiTestSuite))
 }

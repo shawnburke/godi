@@ -1,9 +1,9 @@
 package godi
 
 import (
-	"fmt"
 	"container/list"
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -57,10 +57,10 @@ func (p registrationContext) initializeInstance(instance interface{}, typeReg *t
 
 	var err error
 	callInitializers := true
-	
+
 	if typeReg.initializer != nil {
-		callInitializers,err = typeReg.initializer(instance)
-		if (err != nil && !callInitializers) {
+		callInitializers, err = typeReg.initializer(instance)
+		if err != nil && !callInitializers {
 			// if there is no other option for initializing, we should panic and stop the whole thing
 			panic(fmt.Sprintf("Error with initializer for %s: %s", typeReg.implType.typeName, err.Error()))
 		}
@@ -68,7 +68,12 @@ func (p registrationContext) initializeInstance(instance interface{}, typeReg *t
 
 	if callInitializers {
 		if init, ok := instance.(Initializable); ok {
-			callInitializers = init.Initialize()
+			if initErr := init.GodiInit(); initErr != nil {
+				// if the built-in intializer fails, we are in big trouble...panic!
+				//
+
+				panic(fmt.Sprintf("Error initializing '%s' (registered for target '%s'): %v", typeReg.implType.typeName, typeReg.targetType.typeName, initErr))
+			}
 		}
 
 		if callInitializers {
@@ -167,7 +172,7 @@ func (p registrationContext) RegisterInstanceImplementor(target interface{}, ins
 	}
 
 	if err := tr.ensureImplementor(rt, t); err != nil {
-		return nil, err
+		panic(err.Error())
 	}
 
 	p.addRegistration(tr)
@@ -188,7 +193,7 @@ func (p registrationContext) RegisterTypeImplementor(target interface{}, impl in
 	}
 
 	if err := tr.ensureImplementor(implementor, t); err != nil {
-		return nil, err
+		panic(err.Error())
 	}
 
 	p.addRegistration(tr)
