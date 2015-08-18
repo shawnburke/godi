@@ -15,7 +15,7 @@ For example: imagine a type `Hippo` which satisfies interface `Animal`.
 For callers that are interested in an animal, which is determined by DI
 to be a `Hippo`-type that will be created for each caller:
 
-    godi.RegisterTypeImplementor((*Animal)(nil), Hippo{}, false)
+    godi.RegisterTypeImplementor((*Animal)(nil), Hippo{}, false, nil)
 
 Later, when a caller is interested in getting an `Animal`:
 
@@ -26,7 +26,7 @@ Note that `false` passed above says not to cache the created instance and instea
 Likewise, if it is decided that all Animal-interested parties should get a created instance of `Zebra`:
 
     zebra := &Zebra{Gender: 'Female', Age:4}
-    godi.RegisterInstanceImplementor((*Animal)(nil), zebra)
+    godi.RegisterInstanceImplementor((*Animal)(nil), zebra, nil)
 
 In this case, the all callers will resolve the `Zebra`.
 
@@ -56,7 +56,53 @@ In this way, you can configure godi lookups via a configuration file.
 
 ### Instance Initialization
 
-By default, godi will create a zero-instance of your implementor types.  The Dude does not abide.
+Because Go does not support constructors, Godi provides several mechanisms to ensure that your registered types are coorectly initialized before they are returned to you.
+
+Initialization will be performed in the following order.  See below for details.
+
+1. Initialization Callback (RegisterTypeImplementor only)
+2. `Initializable.GodiInit` method
+3. Instance Initializer
+
+
+#### `Initializable.GodiInitialize` Method
+
+If you could like Godi to be able to automatically initialize your objects, you can implement the InitializableInterface:
+
+    // Initializable allows implementing an initialization interface on a type
+    // that will be called after creation
+    type Initializable interface {
+
+	  // GodiInit will be called to inialize an instance.
+	  GodiInit() error
+    }
+
+After object creation, Godi will check the instance for this interface and, if present, it will call `GodiInit`.  If your object returns an error, _Godi will panic_.
+
+##### FAQ:
+
+* _"Wait, doesn't this create a wierd coupling between Godi and my code?"_  Yes, unfortunately it does.  However, because Go doesn't support running code on instance creation (e.g. constructors), DI needs a mechanism for code to set up state on an object that might not be publically accessible.
+* "_Why isn't it just called 'Initialize'?"_.  Becuase we didn't want it to accidentally collide with another thing sharing such a common name.
+
+#### Registration Callbacks
+
+The second method that Godi supports for object initalization is registration callbacks.
+
+     type InitializeCallback func(interface{}) (bool, error)
+     
+When an object is registered via `RegisterTypeImplementor`, the last parameter can be an InitializeCallback, which will be called when an instance is constructed.  For example:
+
+    godi.RegisterTypeImplementor((*Animal)(nil), Hippo{}, false, func(instance interface{})(bool, error) {
+        hippo := instance.(Hippo)
+        hippo.teeth = Teeth.LARGE
+        return true // allow other initializers to be called
+    })
+
+The callback is the first initializer to be called.  If it returns `false`, it means that other initializers should _not_ be called.  In this way, the callback can override other initialization methods.
+
+#### Pluggable Instance Initializer
+
+Finally, a generic initializer can be added for integation with other frameworks.
 
 To handle this, godi supports the `InstanceInitializer` interface:
 
