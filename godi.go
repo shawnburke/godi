@@ -55,6 +55,7 @@ func getRegisteredTypes() *map[string]*reflect.Type {
 // ExtractType is a helper method that returns the reflect.Type and [package].[type] name
 // of an object
 func ExtractType(val interface{}) (reflect.Type, string) {
+
 	t := reflect.TypeOf(val)
 
 	if !strings.Contains(typeToString(t), "rtype") {
@@ -76,6 +77,7 @@ func typeToString(t reflect.Type) string {
 	return formatType(name)
 }
 
+// Reset all the things.
 func Reset() {
 	typeMap = make(map[string]*reflect.Type)
 	rootContext.Reset()

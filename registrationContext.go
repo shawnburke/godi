@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 )
 
 /// ---------------------------
@@ -22,6 +23,7 @@ type registrationContext struct {
 	registrations map[string]*list.List
 	initializers  *list.List
 	onclose       closeHandler
+	rwlock        sync.RWMutex
 }
 
 var _ RegistrationContext = &registrationContext{}
@@ -98,6 +100,9 @@ func (p registrationContext) initializeInstance(instance interface{}, typeReg *t
 //
 
 func (p registrationContext) addRegistration(reg *typeRegistration) {
+
+	p.rwlock.Lock()
+	defer p.rwlock.Unlock()
 	tn := reg.targetType.typeName
 	var l = p.registrations[tn]
 
@@ -110,6 +115,9 @@ func (p registrationContext) addRegistration(reg *typeRegistration) {
 }
 
 func (p registrationContext) findRegistration(typeName string) *typeRegistration {
+	p.rwlock.RLock()
+	defer p.rwlock.RUnlock()
+
 	typeName = formatType(typeName)
 	l := p.registrations[typeName]
 	if l == nil || l.Len() == 0 {
@@ -120,6 +128,10 @@ func (p registrationContext) findRegistration(typeName string) *typeRegistration
 }
 
 func (p registrationContext) removeRegistration(reg *typeRegistration) bool {
+
+	p.rwlock.Lock()
+	defer p.rwlock.Unlock()
+
 	l := p.registrations[reg.targetType.typeName]
 	if l == nil || l.Len() == 0 {
 		return false
@@ -213,6 +225,7 @@ func (p registrationContext) resolveCore(t reflect.Type) (interface{}, error) {
 	if reg == nil && p.parent != nil {
 		return p.parent.Resolve(t)
 	}
+
 	if reg != nil {
 		raw, created, err := reg.realize()
 		if err != nil {
@@ -227,6 +240,8 @@ func (p registrationContext) resolveCore(t reflect.Type) (interface{}, error) {
 }
 
 func (p registrationContext) Close() {
+
+	p.rwlock.Lock()
 	if p.registrations != nil {
 
 		if p.onclose != nil {
@@ -235,8 +250,10 @@ func (p registrationContext) Close() {
 		}
 
 		p.parent = nil
-		p.Reset()
 	}
+	// have to release because of the lock in reset.
+	p.rwlock.Unlock()
+	p.Reset()
 }
 
 func (p registrationContext) createScopeCore(onclose func()) *registrationContext {
@@ -254,6 +271,9 @@ func (p registrationContext) CreateScope() RegistrationContext {
 }
 
 func (p *registrationContext) Reset() {
+	p.rwlock.Lock()
+	defer p.rwlock.Unlock()
+
 	p.registrations = make(map[string]*list.List)
 	p.initializers = list.New()
 }
