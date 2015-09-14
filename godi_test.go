@@ -251,12 +251,6 @@ func (s *GoDiTestSuite) TestCreateScope() {
 	i1 := (*I1)(nil)
 	t1 := T1{}
 
-	e1 := RegisterType(i1)
-	assert.Nil(s.T(), e1)
-
-	e2 := RegisterType(T1{})
-	assert.Nil(s.T(), e2)
-
 	RegisterInstanceImplementor(i1, t1)
 
 	r1, _ := Resolve(i1)
