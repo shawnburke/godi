@@ -43,14 +43,14 @@ func newregistrationContext(parent *registrationContext) *registrationContext {
 // Initializer stuff
 //
 
-func (p registrationContext) RegisterInstanceInitializer(initializer InstanceInitializer) error {
+func (p *registrationContext) RegisterInstanceInitializer(initializer InstanceInitializer) error {
 	p.initializers.PushFront(initializer)
 	return nil
 }
 
 var initializableType, _ = ExtractType((*Initializable)(nil))
 
-func (p registrationContext) initializeInstance(instance interface{}, typeReg *typeRegistration) (interface{}, error) {
+func (p *registrationContext) initializeInstance(instance interface{}, typeReg *typeRegistration) (interface{}, error) {
 
 	// order of initialization is:
 	// 1. Init callback
@@ -99,7 +99,7 @@ func (p registrationContext) initializeInstance(instance interface{}, typeReg *t
 // Helpers for managing registration list
 //
 
-func (p registrationContext) addRegistration(reg *typeRegistration) {
+func (p *registrationContext) addRegistration(reg *typeRegistration) {
 
 	p.rwlock.Lock()
 	defer p.rwlock.Unlock()
@@ -114,7 +114,7 @@ func (p registrationContext) addRegistration(reg *typeRegistration) {
 	l.PushFront(reg)
 }
 
-func (p registrationContext) findRegistration(typeName string) *typeRegistration {
+func (p *registrationContext) findRegistration(typeName string) *typeRegistration {
 	p.rwlock.RLock()
 	defer p.rwlock.RUnlock()
 
@@ -127,7 +127,7 @@ func (p registrationContext) findRegistration(typeName string) *typeRegistration
 	return l.Front().Value.(*typeRegistration)
 }
 
-func (p registrationContext) removeRegistration(reg *typeRegistration) bool {
+func (p *registrationContext) removeRegistration(reg *typeRegistration) bool {
 
 	p.rwlock.Lock()
 	defer p.rwlock.Unlock()
@@ -155,7 +155,7 @@ func (p registrationContext) removeRegistration(reg *typeRegistration) bool {
 // Registration Stuff
 //
 
-func (p registrationContext) RegisterByName(target string, implmentor string, cached bool) Closable {
+func (p *registrationContext) RegisterByName(target string, implmentor string, cached bool) Closable {
 
 	registrationCounter++
 	tr := &typeRegistration{
@@ -166,10 +166,10 @@ func (p registrationContext) RegisterByName(target string, implmentor string, ca
 	}
 
 	p.addRegistration(tr)
-	return &RegistrationToken{context: &p, registration: tr}
+	return &RegistrationToken{context: p, registration: tr}
 }
 
-func (p registrationContext) RegisterInstanceImplementor(target interface{}, instance interface{}) (Closable, error) {
+func (p *registrationContext) RegisterInstanceImplementor(target interface{}, instance interface{}) (Closable, error) {
 	t := instanceToType(target)
 
 	rt := instanceToType(instance)
@@ -188,10 +188,10 @@ func (p registrationContext) RegisterInstanceImplementor(target interface{}, ins
 	}
 
 	p.addRegistration(tr)
-	return &RegistrationToken{context: &p, registration: tr}, nil
+	return &RegistrationToken{context: p, registration: tr}, nil
 }
 
-func (p registrationContext) RegisterTypeImplementor(target interface{}, impl interface{}, cached bool, init InitializeCallback) (Closable, error) {
+func (p *registrationContext) RegisterTypeImplementor(target interface{}, impl interface{}, cached bool, init InitializeCallback) (Closable, error) {
 
 	t := instanceToType(target)
 	implementor := instanceToType(impl)
@@ -209,15 +209,15 @@ func (p registrationContext) RegisterTypeImplementor(target interface{}, impl in
 	}
 
 	p.addRegistration(tr)
-	return &RegistrationToken{context: &p, registration: tr}, nil
+	return &RegistrationToken{context: p, registration: tr}, nil
 }
 
-func (p registrationContext) Resolve(target interface{}) (interface{}, error) {
+func (p *registrationContext) Resolve(target interface{}) (interface{}, error) {
 	t := instanceToType(target)
 	return p.resolveCore(t)
 }
 
-func (p registrationContext) resolveCore(t reflect.Type) (interface{}, error) {
+func (p *registrationContext) resolveCore(t reflect.Type) (interface{}, error) {
 	name := typeToString(t)
 
 	reg := p.findRegistration(name)
@@ -239,7 +239,7 @@ func (p registrationContext) resolveCore(t reflect.Type) (interface{}, error) {
 	return nil, errors.New(ErrorRegistrationNotFound)
 }
 
-func (p registrationContext) Close() {
+func (p *registrationContext) Close() {
 
 	p.rwlock.Lock()
 	if p.registrations != nil {
@@ -256,16 +256,16 @@ func (p registrationContext) Close() {
 	p.Reset()
 }
 
-func (p registrationContext) createScopeCore(onclose func()) *registrationContext {
-	ctx := newregistrationContext(&p)
+func (p *registrationContext) createScopeCore(onclose func()) *registrationContext {
+	ctx := newregistrationContext(p)
 	if onclose != nil {
 		ctx.onclose = onclose
 	}
 	return ctx
 }
 
-func (p registrationContext) CreateScope() RegistrationContext {
-	ctx := newregistrationContext(&p)
+func (p *registrationContext) CreateScope() RegistrationContext {
+	ctx := newregistrationContext(p)
 	var rc RegistrationContext = ctx
 	return rc
 }
