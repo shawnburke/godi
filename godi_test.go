@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -196,6 +197,36 @@ func (s *GoDiTestSuite) TestResolveType() {
 	str := t1_val.F1()
 	assert.Equal(s.T(), t1.s, str)
 
+	res.Close()
+
+	_, err3 := Resolve(i1)
+	assert.NotNil(s.T(), err3)
+}
+
+func (s *GoDiTestSuite) TestResolveTypeConcurrenet() {
+	i1 := (*I1)(nil)
+	t1 := T1{}
+
+	res, err := RegisterTypeImplementor(i1, t1, true, nil)
+	assert.Nil(s.T(), err)
+
+	n := 5
+	wait := sync.WaitGroup{}
+	wait.Add(n)
+
+	for i := 0; i < n; i++ {
+		go func() {
+			t1_r, err2 := Resolve(i1)
+			assert.NotNil(s.T(), t1_r)
+			assert.Nil(s.T(), err2)
+			t1_val := t1_r.(I1)
+			str := t1_val.F1()
+			assert.Equal(s.T(), t1.s, str)
+			wait.Done()
+		}()
+	}
+
+	wait.Wait()
 	res.Close()
 
 	_, err3 := Resolve(i1)

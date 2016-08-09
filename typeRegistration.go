@@ -33,33 +33,40 @@ func (p *typeRegistration) realize() (interface{}, bool, error) {
 	// do we have an instance?
 	//
 
-	var i interface{}
 	created := false
+
+	create := func() interface{} {
+		created = true
+		return reflect.New(p.implType.Type()).Interface()
+	}
 
 	// only lock if we're a cached item
 	// we lock here to make sure we don't create the item twice.
 	//
-	wlock := false
 	p.lock.RLock()
 
-	if p.cached && p.instance == nil {
-		// promote to writer lock
+	var instance interface{} = p.instance
+	needsCachedInstance := p.cached && p.instance == nil
+
+	if needsCachedInstance {
+		// if we need an instance, upgrade the lock
 		p.lock.RUnlock()
 		p.lock.Lock()
-		wlock = true
+
+		// check again to avoid races
+		if p.instance == nil {
+			instance = create()
+			p.instance = instance
+		} else {
+			instance = p.instance
+		}
+		defer p.lock.Unlock()
+	} else {
+		defer p.lock.RUnlock()
 	}
 
-	if p.instance == nil || !p.cached {
-		i = reflect.New(p.implType.Type()).Interface()
-		created = true
-	} else {
-		i = p.instance
+	if !p.cached {
+		instance = create()
 	}
-	p.instance = i
-	if wlock {
-		p.lock.Unlock()
-	} else {
-		p.lock.RUnlock()
-	}
-	return i, created, nil
+	return instance, created, nil
 }
